@@ -67,17 +67,20 @@ RUN set -eux; \
     x86_64) curl -LfsSo /usr/local/bin/docker-compose "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" \
          && chmod +x /usr/local/bin/docker-compose ;; \
     armhf|armv7|armv7l|aarch64) apt-get update \
-                      && DEBIAN_FRONTEND=noninteractive \
-                         apt-get install -y \
-                                 build-essential \
-                                 libssl-dev \
-                                 libffi-dev \
-                                 python3-dev \
-                                 python3-pip \
-                                 libsodium-dev \
-                      && rm -rf /var/lib/apt/list/* \
-                      && SODIUM_INSTALL=system pip3 install pynacl \
-                      && python3 -m pip install -IU docker-compose ;; \
+                                 && apt-get install -y make gcc g++ python \
+                                 && npm install \
+                                 && npm rebuild bcrypt --build-from-source \
+                                 && DEBIAN_FRONTEND=noninteractive \
+                                    apt-get install -y \
+                                            build-essential \
+                                            libssl-dev \
+                                            libffi-dev \
+                                            python3-pip \
+                                            libsodium-dev \
+                                 && SODIUM_INSTALL=system pip3 install pynacl \
+                                 && python3 -m pip install -IU docker-compose \
+                                 && apt-get uninstall make gcc g++ python build-essential libssl-dev libffi-dev libsodium-dev \
+                                 && rm -rf /var/lib/apt/list/* ;; \
     ppc64le) dockerArch='ppc64le' ;; \
     s390x) dockerArch='s390x' ;; \
     *) echo >&2 "error: unsupported architecture ($arch)"; exit 1 ;;\
