@@ -74,6 +74,7 @@ RUN set -eux; \
                                  libffi-dev \
                                  python3-dev \
                                  python3-pip \
+                                 libsodium-dev \
                       && rm -rf /var/lib/apt/list/* \
                       && SODIUM_INSTALL=system pip3 install pynacl \
                       && python3 -m pip install -IU docker-compose ;; \
