@@ -74,7 +74,8 @@ RUN set -eux; \
                                  libffi-dev \
                                  python3-dev \
                                  python3-pip \
-                      && rm -rf /var/lib/apt/list/*  \
+                      && rm -rf /var/lib/apt/list/* \
+                      && SODIUM_INSTALL=system pip3 install pynacl \
                       && python3 -m pip install -IU docker-compose ;; \
     ppc64le) dockerArch='ppc64le' ;; \
     s390x) dockerArch='s390x' ;; \
