@@ -57,7 +57,7 @@ docker run --rm -it \
   -v "$(pwd):$(pwd)" \
   -w "$(pwd)" \
   bkahlert/build-runner:edge \
-  -- javac --version
+  javac --version
 ```
 
 ### Run with Docker-in-Docker capabilities and SSH enabled 
