@@ -4,10 +4,12 @@ RUN apt-get update \
  && DEBIAN_FRONTEND=noninteractive \
     apt-get install -y \
             ca-certificates \
-            openssh-client \
-            wget \
             curl \
             iptables \
+            iproute2 \
+            kmod \
+            openssh-client \
+            wget \
             supervisor \
  && rm -rf /var/lib/apt/list/*
 
@@ -51,9 +53,7 @@ RUN set -eux; \
   dockerd --version; \
   docker --version
 
-COPY modprobe startup.sh /usr/local/bin/
-COPY supervisor/ /etc/supervisor/conf.d/
-COPY logger.sh /opt/bash-utils/logger.sh
+COPY rootfs /
 
 RUN chmod +x /usr/local/bin/startup.sh /usr/local/bin/modprobe
 VOLUME /var/lib/docker
@@ -157,15 +157,17 @@ RUN apt-get update \
             sudo \
             rsync \
  && rm -rf /var/lib/apt/lists/* \
- && sed -i 's/#\{0,1\}Port.*$/Port 2022/' /etc/ssh/sshd_config \
+ && sed -Ei -e 's/#?[[:space:]]*Port .*$/Port 2022/g' /etc/ssh/sshd_config \
  && chmod 775 /var/run \
  && mkdir /var/run/sshd \
  && rm -f /var/run/nologin \
  && useradd -rm -d /home/ubuntu -s /bin/bash -g root -G sudo -u 1000 ubuntu \
  && if [ -z "${AUTHORIZED_KEYS}" ]; then \
-      sed -i \
-          -e 's/#\{0,1\}ChallengeResponseAuthentication.*$/ChallengeResponseAuthentication no/' \
-          -e 's/#\{0,1\}PasswordAuthentication.*$/PasswordAuthentication no/' \
+      sed -Ei \
+          -e 's/#?[[:space:]]*ChallengeResponseAuthentication .*$/ChallengeResponseAuthentication no/' \
+          /etc/ssh/sshd_config; \
+      sed -Ei \
+          -e 's/#?[[:space:]]*PasswordAuthentication .*$/PasswordAuthentication no/' \
           /etc/ssh/sshd_config; \
     else \
       echo 'ubuntu:ubuntu' | chpasswd; \
