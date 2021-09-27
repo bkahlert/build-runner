@@ -104,6 +104,8 @@ RUN git clone https://github.com/bats-core/bats-support.git /opt/bats-support \
  && echo "${ENTRYPOINT_SCRIPT}" > /usr/local/bin/entrypoint.sh \
  && sed -i -e "s/^puid.*/puid=${PUID}/" -e "s/^pgid.*/pgid=${PGID}/" /usr/local/bin/entrypoint.sh \
  && chmod +x /usr/local/bin/entrypoint.sh
+# groupadd/useradd must be used instead of addgroup/adduser
+# as on hosts like macOS IDs can be outside of the typical range 0..256000
 RUN groupadd \
     --gid $PGID \
     tester
@@ -111,7 +113,11 @@ RUN useradd \
     --uid $PUID \
     --gid tester \
     --shell /bin/bash \
-    tester
+    --home-dir /home/tester \
+    tester \
+ && mkdir -p /home/tester \
+ && chown -R tester:tester /home/tester \
+ && chmod 711 /home/tester
 COPY --from=crazymax/yasu:latest / /
 ENTRYPOINT ["/tini", "--", "entrypoint.sh", "bash", "bats"]
 DOCKERFILE

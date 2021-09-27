@@ -35,7 +35,7 @@ Following platforms for this image are available:
 
 ## Credentials
 
-The user `ubuntu` is set up with password `ubuntu` by default.
+The user `runner` is set up with password `runner` by default.
 
 Alternatively you can provide a public key during build.  
 Doing so will disable the possibility to log in with a password.

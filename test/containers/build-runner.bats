@@ -19,6 +19,38 @@ teardown() {
   fi
 }
 
+run_ssh() {
+  local -r -i port=$(( 1024 + RANDOM % 49151 ))
+
+  cp_fixture test_id_rsa id_rsa
+
+  run docker run -d --name "${BATS_TEST_NAME}" -p "$port":2022 "${BUILD_TAG}"
+
+  # shellcheck disable=SC2154
+  local -r ID="${output}"
+  assert_within 30 "run docker logs ""${ID}"" && assert_line --partial 'dockerd is running'"
+
+  run ssh \
+    -i id_rsa \
+    -o UserKnownHostsFile=/dev/null \
+    -o StrictHostKeyChecking=no \
+    -o LogLevel=ERROR \
+    -p "$port" \
+    runner@host.docker.internal \
+    "$@"
+}
+
+@test "should have SSHD correctly configured" {
+
+  run docker run -i --name "${BATS_TEST_NAME}" \
+    --entrypoint bash "${BUILD_TAG}" \
+    -c 'cat /etc/ssh/sshd_config'
+
+  assert_line 'Port 2022'
+  assert_line 'ChallengeResponseAuthentication no'
+  assert_line 'PasswordAuthentication no'
+}
+
 @test "should start docker daemon" {
 
   run docker run -d --name "${BATS_TEST_NAME}" "${BUILD_TAG}"
@@ -40,20 +72,44 @@ teardown() {
   local -r ID="${output}"
   assert_within 30 "run docker logs ""${ID}"" && assert_line --partial 'dockerd is running'"
 
-  sshpass -p "ubuntu" ssh -p 42202 -o StrictHostKeyChecking=no ubuntu@host.docker.internal id
-  refute_output --regexp 'uid=.* gid=.* groups=.*'
+  run sshpass -p "runner" ssh \
+    -o StrictHostKeyChecking=no \
+    -o UserKnownHostsFile=/dev/null \
+    -o StrictHostKeyChecking=no \
+    -o LogLevel=ERROR \
+    -p 42022 \
+    runner@host.docker.internal id
+  assert_line --partial 'Permission denied (publickey)'
 }
 
 @test "should accept public key" {
-  cp_fixture test_id_rsa id_rsa
 
-  run docker run -d --name "${BATS_TEST_NAME}" -p 52022:2022 "${BUILD_TAG}"
+  run_ssh id
 
-  # shellcheck disable=SC2154
-  local -r ID="${output}"
-  assert_within 30 "run docker logs ""${ID}"" && assert_line --partial 'dockerd is running'"
-
-  ssh -i id_rsa -p 52202 host.docker.internal id
-  sleep 300
   assert_output --regexp 'uid=.* gid=.* groups=.*'
+}
+
+
+@test "should provide Java" {
+
+  run_ssh java --version
+
+  assert_line --partial 'openjdk 11'
+}
+
+
+@test "should have JAVA_HOME set" {
+
+  run_ssh "ls \$JAVA_HOME"
+
+  assert_line --partial 'bin'
+  assert_line --partial 'jre'
+}
+
+
+@test "should provide Docker" {
+
+  run_ssh docker run --rm hello-world
+
+  assert_line 'Hello from Docker!'
 }
