@@ -102,7 +102,7 @@ cd build-runner
 
 # Use Bats wrapper to run tests
 chmod +x ./batsw
-DOCKER_BAKE="--set *.tags=test --set *.args.AUTHORIZED_KEYS='$(cat test/fixtures/test_id_rsa.pub)'" \
+DOCKER_BAKE="--set *.tags=test" \
   ./batsw --env BUILD_TAG=test test
 ```
 

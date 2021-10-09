@@ -19,21 +19,6 @@ teardown() {
   fi
 }
 
-run_ssh() {
-  cp_fixture test_id_rsa test_id_rsa && chmod 0600 test_id_rsa
-  local container && container=$(docker run -d --name "$BATS_TEST_NAME" "$BUILD_TAG")
-  assert_within 10s -- assert_container_log "$container" --partial '✔ waiting for sshd'
-
-  run ssh \
-    -i test_id_rsa \
-    -o UserKnownHostsFile=/dev/null \
-    -o StrictHostKeyChecking=no \
-    -o LogLevel=ERROR \
-    -p 2022 \
-    "runner@$(container_ip "$container")" \
-    "$@"
-}
-
 
 @test "should have ssh daemon correctly configured" {
   local container && container=$(docker run -d --name "$BATS_TEST_NAME" "$BUILD_TAG")
@@ -56,11 +41,26 @@ run_ssh() {
     -p 2022 \
     "runner@$(container_ip "$container")" \
     id
+
   assert_line --partial 'Permission denied (public''key)'
 }
 
 @test "should accept public key" {
-  run_ssh id
+  cp_fixture test_id_rsa.pub test_id_rsa.pub
+  cp_fixture test_id_rsa test_id_rsa && chmod 0600 test_id_rsa
+  local public_key_args=('-e' "AUTHORIZED_KEYS=$(cat test_id_rsa.pub)")
+  local container && container=$(docker run -d --name "$BATS_TEST_NAME" "${public_key_args[@]}" "$BUILD_TAG")
+  assert_within 10s -- assert_container_log "$container" --partial '✔ waiting for sshd'
+
+  run ssh \
+    -i test_id_rsa \
+    -o UserKnownHostsFile=/dev/null \
+    -o StrictHostKeyChecking=no \
+    -o LogLevel=ERROR \
+    -p 2022 \
+    "runner@$(container_ip "$container")" \
+    id
+
   assert_output --regexp 'uid=.* gid=.* groups=.*'
 }
 
@@ -96,7 +96,7 @@ run_ssh() {
 
   cp_fixture test_id_rsa test_id_rsa && chmod 0600 test_id_rsa
 
-  ssh \
+  run ssh \
     -i test_id_rsa \
     -o StrictHostKeyChecking=no \
     -o UserKnownHostsFile=/dev/null \

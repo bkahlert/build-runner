@@ -1,7 +1,7 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="build and run tests" type="BashProRunConfiguration">
     <envs>
-      <env name="DOCKER_BAKE" value="--set *.tags=test --set *.args.AUTHORIZED_KEYS='ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC4jkUBuTz82d7pQpzrQpMeCfjmJ+FT3jKXe1aHkI7dMSCYCb0zYALxcgwFuSuqWMN+zJNUndBfwmkYi9PzG9R51W1y4QDt0JN6q1y9rwFUAnrfLIK8ct5bwm0X7lOmiG56isFKwwXxmmsEdB1904PowNaIOmXb3BovZGi0JABjrTPkd4QnBb/SEZO6ACA09mx8M+usNNIKVNUHFjF6TWv9g3umLbK/8WCk5xLxPD9W/WOdeDyPeuNppRxiJqPKGPVfKLV/4CTGGRKiCcWj4sAG+fa8xgeBKsoyeGHHnd40OSTwi7CugHcAwMMAvOJqib0tPkjMjI0+b5a+ljrgJyE+MIc+MvnEFq+V/7yPirBn0eD6Hdc9LbAxAZm3C5B5VJIKMEI23cZ3nNEbjCZNJT1yVGOeMjgtTdoqPz0gIli2wKmlWTlAl4cFlyeL+LNz9aaJ22+igxjrxknYdWbFDKQhO7/LE5HKWosibtxv/8IpFDSBw2R/dC9xBLME+ZzOa5E='" />
+      <env name="DOCKER_BAKE" value="--set *.tags=test" />
     </envs>
     <option name="scriptParameters" value="--env BUILD_TAG=test test" />
     <option name="scriptPath" value="batsw" />
