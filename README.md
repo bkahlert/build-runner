@@ -71,6 +71,25 @@ docker run --rm -it \
 ```
 
 
+## Testing
+
+```shell
+git clone https://github.com/bkahlert/build-runner.git
+cd build-runner
+
+# Use Bats wrapper to run tests
+chmod +x ./batsw
+DOCKER_BAKE="--set *.tags=test --set *.args.AUTHORIZED_KEYS='$(cat test/fixtures/test_id_rsa.pub)'" \
+  ./batsw --env BUILD_TAG=test test
+```
+
+`batsw` is a wrapper for the Bash testing framework [Bats](https://github.com/bats-core/bats-core).   
+It builds a Docker image on-the-fly containing Bats incl. several libraries and runs all tests
+contained in the specified directory.
+
+> :bulb: To accelerate testing, the Bats Wrapper checks if any test is prefixed with a capital X and if so, only runs those tests.
+
+
 ## Contributing
 
 Want to contribute? Awesome! The most basic way to show your support is to star the project, or to raise issues. You
@@ -83,3 +102,7 @@ Thanks again for your support, it is much appreciated! :pray:
 ## License
 
 MIT. See [LICENSE](LICENSE) for more details.
+
+
+# TODO $PASSWORD
+# TODO $AUTHORIZED_KEYS
