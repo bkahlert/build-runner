@@ -227,7 +227,6 @@ main() {
   logr task "fixing permissions of home directory for $user" -- fix_home_permissions "$user"
   logr task "fixing permissions of .ssh directory for $user" -- fix_ssh_permissions "$user" "$group"
 
-# TODO check if output is empty if arguments and no terminal
   if [ "${#@}" -gt 0 ]; then
     logr info "changing to $user:$group"
     util cursor show

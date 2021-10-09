@@ -1,5 +1,6 @@
 FROM docker:20.10.8-alpine3.14
 
+ARG TZ=''
 ARG PUID=1000
 ARG PGID=1000
 ARG AUTHORIZED_KEYS=''
@@ -30,7 +31,8 @@ RUN chmod +x \
     /usr/local/sbin/runtime_keygen.sh \
  && curl -LfsSo /usr/local/bin/logr.sh https://raw.githubusercontent.com/bkahlert/logr/master/logr.sh
 
-ENV PUID=$PUID \
+ENV TZ=$TZ \
+    PUID=$PUID \
     PGID=$PGID \
     AUTHORIZED_KEYS=$AUTHORIZED_KEYS \
     PASSWORD=${AUTHORIZED_KEYS:+$PASSWORD} \
