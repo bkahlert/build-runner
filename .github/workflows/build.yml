@@ -77,7 +77,7 @@ jobs:
             ./docker-bake.hcl
             ${{ steps.meta.outputs.bake-file }}
           set: |
-            *.tags="${{ steps.prep.outputs.test_tag }}"
+            *.tags=${{ steps.prep.outputs.test_tag }}
 
       - name: Run tests
         run: |
