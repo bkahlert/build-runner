@@ -15,7 +15,34 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Prepare
+        id: prep
+        run: |
+          echo ::set-output name=test_reports::build/test-reports
+
+      - name: Run tests
+        run: |
+          chmod +x batsw
+          ./batsw test \
+            --report-formatter junit \
+            --output "${{ steps.prep.outputs.test_reports }}"
+
+      - name: Upload test reports
+        uses: actions/upload-artifact@v2
+        if: success() || failure()
+        with:
+          name: test-reports
+          path: ${{ steps.prep.outputs.test_reports }}/*.xml
+
   build:
+    needs: test
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -84,3 +111,16 @@ jobs:
           docker image inspect ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
           docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
           docker image inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Draft release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/v')
+        with:
+          draft: true
+          body_part: CHANGELOG.md
+          token: ${{ secrets.GITHUB_TOKEN }}
