@@ -273,6 +273,8 @@ bats() {
 #   *      - bats arguments
 # bashsupport disable=BP2001,BP5006
 main() {
+  TERM=${TERM:-dumb}
+  export TERM
   local -r BATS_CMD=bats
 
   local -a BATS_ARGS=()

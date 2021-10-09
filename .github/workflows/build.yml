@@ -65,8 +65,8 @@ jobs:
       - name: Prepare
         id: prep
         run: |
-          echo ::set-output name=test_tag::test \
-          echo ::set-output name=test_reports_format::junit \
+          echo ::set-output name=test_tag::test
+          echo ::set-output name=test_reports_format::junit
           echo ::set-output name=test_reports_dir::build/test-reports
 
       - name: Run tests
