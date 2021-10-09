@@ -15,35 +15,35 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      - name: Prepare
-        id: prep
-        run: |
-          echo ::set-output name=test_reports::build/test-reports
-
-      - name: Run tests
-        run: |
-          chmod +x batsw
-          ./batsw test \
-            --env BUILD_TAG=test \
-            --report-formatter junit \
-            --output "${{ steps.prep.outputs.test_reports }}"
-
-      - name: Upload test reports
-        uses: actions/upload-artifact@v2
-        if: success() || failure()
-        with:
-          name: test-reports
-          path: ${{ steps.prep.outputs.test_reports }}/*.xml
+#  test:
+#    runs-on: ubuntu-latest
+#
+#    steps:
+#      - name: Checkout
+#        uses: actions/checkout@v2
+#
+#      - name: Prepare
+#        id: prep
+#        run: |
+#          echo ::set-output name=test_reports::build/test-reports
+#
+#      - name: Run tests
+#        run: |
+#          chmod +x batsw
+#          ./batsw test \
+#            --env BUILD_TAG=test \
+#            --report-formatter junit \
+#            --output "${{ steps.prep.outputs.test_reports }}"
+#
+#      - name: Upload test reports
+#        uses: actions/upload-artifact@v2
+#        if: success() || failure()
+#        with:
+#          name: test-reports
+#          path: ${{ steps.prep.outputs.test_reports }}/*.xml
 
   build:
-    needs: test
+#    needs: test
     runs-on: ubuntu-latest
     permissions:
       contents: read
