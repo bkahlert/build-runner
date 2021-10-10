@@ -64,7 +64,7 @@ ssh -p 2022 runner@localhost
 
 ## Configuration
 
-The build runner can be configured using the following options of which each exists as both—build argument and environment variable.  
+This image can be configured using the following options of which each exists as both—build argument and environment variable.  
 You should go for build arguments if you want to set custom defaults you don't intend to change (often). Environment variables will overrule any existing configuration on each container start. 
 
 * `TZ` Timezone the container runs in (default: `UTC`)

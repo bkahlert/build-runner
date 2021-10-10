@@ -116,6 +116,21 @@ patch_lib() {
         }
       fi
       ;;
+    file)
+      local bats_fn bats_decl
+      for bats_fn in $(set | grep -e "^assert_file_*"); do
+        [[ $bats_fn == assert_file_* ]] || continue
+        bats_decl=$(declare -f "$bats_fn") || true
+        if [ "${bats_decl-}" ]; then
+          eval "bats_$bats_decl"
+          eval "$bats_fn() {
+            BATSLIB_FILE_PATH_REM=\${BATSLIB_FILE_PATH_REM:-} \
+            BATSLIB_FILE_PATH_ADD=\${BATSLIB_FILE_PATH_ADD:-} \
+            bats_$bats_fn \"\$@\"
+          }"
+        fi
+      done
+      ;;
   esac
 }
 

@@ -27,7 +27,7 @@ RUN apk --no-cache --update add \
     sshpass \
     supervisor
 
-COPY --from=crazymax/yasu:latest / /
+COPY --from=crazymax/yasu:1.17.0 / /
 COPY rootfs /
 RUN chmod +x \
     /usr/local/bin/entrypoint_user.sh \
@@ -38,6 +38,7 @@ RUN chmod +x \
  && curl -LfsSo /usr/local/bin/logr.sh https://raw.githubusercontent.com/bkahlert/logr/master/logr.sh
 
 ENV TZ="$TZ" \
+    LANG="C.UTF-8" \
     PUID="$PUID" \
     PGID="$PGID" \
     AUTHORIZED_KEYS="$AUTHORIZED_KEYS" \
