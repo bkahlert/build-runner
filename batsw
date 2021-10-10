@@ -316,7 +316,7 @@ main() {
   echo "$(tput setaf 7) ℹ$(tput sgr0) batsw command line:" "${BATS_CMD}" "${BATS_ARGS[@]+"${BATS_ARGS[@]}"}"
 
   if [ "${DOCKER_BAKE-}" ]; then
-    split_to_array DOCKER_BAKE
+    split_to_array "DOCKER_BAKE"
     if ! baked_tag="$(bake_local "${DOCKER_BAKE[@]+"${DOCKER_BAKE[@]}"}")"; then
       exit 1
     fi
