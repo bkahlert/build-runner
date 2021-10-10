@@ -1,12 +1,16 @@
 FROM docker:20.10.8-alpine3.14
 
-ARG TZ=''
+# build time only options
+ARG APP_USER=runner
+ARG APP_GROUP=$APP_USER
+ARG SSH_PORT=2022
+
+# build and run time options
+ARG TZ=UTC
 ARG PUID=1000
 ARG PGID=1000
 ARG AUTHORIZED_KEYS=''
-ARG PASSWORD=runner
-
-ARG DUMB_INIT_VERSION=1.2.5
+ARG PASSWORD=''
 
 RUN apk --no-cache --update add \
     bash \
@@ -28,37 +32,45 @@ COPY rootfs /
 RUN chmod +x \
     /usr/local/bin/entrypoint_user.sh \
     /usr/local/sbin/entrypoint.sh \
-    /usr/local/sbin/runtime_keygen.sh \
+ && sed -Ei -e "s/([[:space:]]app_user=)[^[:space:]]*/\1$APP_USER/" \
+            -e "s/([[:space:]]app_group=)[^[:space:]]*/\1$APP_GROUP/" \
+             /usr/local/sbin/entrypoint.sh \
  && curl -LfsSo /usr/local/bin/logr.sh https://raw.githubusercontent.com/bkahlert/logr/master/logr.sh
 
-ENV TZ=$TZ \
-    PUID=$PUID \
-    PGID=$PGID \
-    AUTHORIZED_KEYS=$AUTHORIZED_KEYS \
-    PASSWORD=${AUTHORIZED_KEYS:+$PASSWORD} \
-    JAVA_HOME=/usr/lib/jvm/default-jvm/jre
+ENV TZ="$TZ" \
+    PUID="$PUID" \
+    PGID="$PGID" \
+    AUTHORIZED_KEYS="$AUTHORIZED_KEYS" \
+    PASSWORD="$PASSWORD" \
+    JAVA_HOME="/usr/lib/jvm/default-jvm/j"re
+
 RUN groupadd \
-    --gid $PGID \
-    runner \
+    --gid "$PGID" \
+    "$APP_GROUP" \
  && useradd \
-    --uid $PUID \
-    --gid runner \
-    --shell /bin/bash \
-    --home-dir /home/runner \
-    runner \
+    --uid "$PUID" \
+    --gid "$APP_GROUP" \
+    --shell "/bin/bash" \
+    --home-dir "/home/$APP_USER" \
+    "$APP_USER" \
  && rm /etc/motd \
- && mkdir -p /home/runner \
- && echo "export JAVA_HOME=$JAVA_HOME" >> /home/runner/.bashrc \
- && echo "[ -f ~/.bashrc ] && . ~/.bashrc" >> /home/runner/.bash_profile \
- && chmod -R 0711 /home/runner \
- && chown -R runner:runner /home/runner \
+ && mkdir -p "/home/$APP_USER" \
+ && echo "export JAVA_HOME=$JAVA_HOME" >> "/home/$APP_USER/.bashrc" \
+ && echo "[ -f ~/.bashrc ] && . ~/.bashrc" >> "/home/$APP_USER/.bash_profile" \
+ && chmod -R 0711 "/home/$APP_USER" \
+ && chown -R "$APP_USER:$APP_GROUP" "/home/$APP_USER" \
  && apk update \
  && apk upgrade \
  && apk --no-cache --update add openssh-server \
- && sed -Ei -e 's/#?[[:space:]]*Port .*$/Port 2022/g' /etc/ssh/sshd_config \
- && sed -Ei -e 's/#?[[:space:]]*ChallengeResponseAuthentication .*$/ChallengeResponseAuthentication no/g' /etc/ssh/sshd_config \
- && sed -Ei -e 's/#?[[:space:]]*PasswordAuthentication .*$/PasswordAuthentication no/g' /etc/ssh/sshd_config
+ && ssh-keygen -A \
+ && sed -Ei -e 's/#?[[:space:]]*Port .*$/Port '"$SSH_PORT"'/g' \
+            -e 's/#?[[:space:]]*ChallengeResponseAuthentication .*$/ChallengeResponseAuthentication no/g' \
+            -e 's/#?[[:space:]]*PasswordAuthentication .*$/PasswordAuthentication no/g' \
+            /etc/ssh/sshd_config
 
-EXPOSE 2022
+EXPOSE "$SSH_PORT"
 
 ENTRYPOINT ["/usr/bin/dumb-init", "--", "/usr/local/sbin/entrypoint.sh"]
+
+HEALTHCHECK --interval=5s --timeout=5s --start-period=10s \
+  CMD netstat -lp | grep -E "$SSH_PORT.*LISTEN.*sshd" || exit 1

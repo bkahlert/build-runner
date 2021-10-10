@@ -20,19 +20,16 @@ teardown() {
 }
 
 
-@test "should have ssh daemon correctly configured" {
-  local container && container=$(docker run -d --name "$BATS_TEST_NAME" "$BUILD_TAG")
-  assert_within 10s -- assert_container_log "$container" --partial 'running as service'
-  run docker exec "$container" cat /etc/ssh/sshd_config
-
+@test "should have build time configured ssh daemon" {
+  run docker run --name "$BATS_TEST_NAME" --entrypoint bash "$BUILD_TAG" -c 'cat /etc/ssh/sshd_config'
   assert_line 'Port 2022'
   assert_line 'ChallengeResponseAuthentication no'
   assert_line 'PasswordAuthentication no'
 }
 
-@test "should refuse password auth" {
+@test "should refuse password authentication by default" {
   local container && container=$(docker run -d --name "$BATS_TEST_NAME" "$BUILD_TAG")
-  assert_within 10s -- assert_container_log "$container" --partial 'running as service'
+  assert_within 10s -- assert_container_log "$container" --partial 'services started'
 
   run sshpass -p "runner" ssh \
     -o StrictHostKeyChecking=no \
@@ -45,12 +42,12 @@ teardown() {
   assert_line --partial 'Permission denied (public''key)'
 }
 
-@test "should accept public key" {
+@test "should accept public key if specified" {
   cp_fixture test_id_rsa.pub test_id_rsa.pub
   cp_fixture test_id_rsa test_id_rsa && chmod 0600 test_id_rsa
   local public_key_args=('-e' "AUTHORIZED_KEYS=$(cat test_id_rsa.pub)")
   local container && container=$(docker run -d --name "$BATS_TEST_NAME" "${public_key_args[@]}" "$BUILD_TAG")
-  assert_within 10s -- assert_container_log "$container" --partial '✔ waiting for sshd'
+  assert_within 10s -- assert_container_log "$container" --partial '✔ sshd is running'
 
   run ssh \
     -i test_id_rsa \
@@ -67,7 +64,7 @@ teardown() {
 @test "should enable password if specified" {
   local password_args=('-e' 'AUTHORIZED_KEYS=' '-e' 'PASSWORD=password1234')
   local container && container=$(docker run -d --name "$BATS_TEST_NAME" "${password_args[@]}" "$BUILD_TAG")
-  assert_within 10s -- assert_container_log "$container" --partial 'running as service'
+  assert_within 10s -- assert_container_log "$container" --partial 'services started'
   run docker exec "$container" cat /etc/ssh/sshd_config
 
   assert_line 'ChallengeResponseAuthentication yes'
@@ -77,7 +74,7 @@ teardown() {
 @test "should accept password if enabled" {
   local password_args=('-e' 'AUTHORIZED_KEYS=' '-e' 'PASSWORD=password1234')
   local container && container=$(docker run -d --name "$BATS_TEST_NAME" "${password_args[@]}" "$BUILD_TAG")
-  assert_within 10s -- assert_container_log "$container" --partial 'running as service'
+  assert_within 10s -- assert_container_log "$container" --partial 'services started'
 
   run sshpass -p "password1234" ssh \
     -o StrictHostKeyChecking=no \
@@ -92,7 +89,7 @@ teardown() {
 @test "should refuse public key if password is enabled" {
   local password_args=('-e' 'AUTHORIZED_KEYS=' '-e' 'PASSWORD=password1234')
   local container && container=$(docker run -d --name "$BATS_TEST_NAME" "${password_args[@]}" "$BUILD_TAG")
-  assert_within 10s -- assert_container_log "$container" --partial 'running as service'
+  assert_within 10s -- assert_container_log "$container" --partial 'services started'
 
   cp_fixture test_id_rsa test_id_rsa && chmod 0600 test_id_rsa
 

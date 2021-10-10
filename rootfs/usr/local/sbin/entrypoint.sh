@@ -52,7 +52,7 @@ fix_home_permissions() {
 update_timezone() {
   local -r timezone=${1:?timezone missing}
   ln -snf "/usr/share/zoneinfo/$timezone" /etc/localtime
-  echo "$timezone" >/etc/timezone
+  printf '%s\n' "$timezone" >/etc/timezone
 }
 
 # Sets the specified configuration keyword values in sshd_config.
@@ -95,7 +95,7 @@ use_ssh_public_key_authentication() {
 
   mkdir -p "/home/${user}/.ssh"
 
-  logr task "setting authorized key for $user to ${public_key:0:10}" \
+  logr task "setting authorized key for $user to ${public_key:0:10}..." \
     -- bash -c "echo '$public_key' >'/home/$user/.ssh/authorized_keys'"
   logr task "setting random password for $user" \
     -- bash -c "echo '$user:$(tr -dc '[:alnum:]' </dev/urandom 2>/dev/null | dd bs=4 count=8 2>/dev/null)' | chpasswd"
@@ -115,7 +115,7 @@ use_ssh_password_authentication() {
   local -r user="${1:?user missing}"
   local -r password="${2:-${user}}"
 
-  logr task "setting password for $user to ${password:0:2}" \
+  logr task "setting password for $user to ${password:0:2}..." \
     -- bash -c "echo '$user:$password' | chpasswd"
   logr task "removing authorized key from $user" \
     -- bash -c "[ ! -f '/home/$user/.ssh/authorized_keys' ] || rm '/home/$user/.ssh/authorized_keys'"
@@ -155,20 +155,24 @@ fix_ssh_permissions() {
 
 # Starts supervisord and waits for the given processes to start.
 # The actual service configuration is located at /etc/supervisor/supervisord.conf.
+# Globals:
+#   SUPERVISOR_PID - will be set to the PID of the running supervisord
 # Arguments:
 #   * - processes to wait for
-# Return:
-#   PID of the supervisord process
+# Outputs:
+#   1 - PID of the supervisord process
 start_processes() {
+  local pidfile=/var/run/supervisord.pid
   /usr/bin/supervisord \
-    --nodaemon \
-    --pidfile=/var/run/supervisord.pid \
-    --configuration /etc/supervisor/supervisord.conf \
-    &>/dev/null &
+    --pidfile="$pidfile" \
+    --configuration "/etc/supervisor/supervisord.conf" &
 
   for process in "$@"; do
-    logr task "waiting for $process" -- wait_for_process "$process"
+    wait_for_process "$process"
   done
+
+  # bashsupport disable=BP5006
+  printf -v SUPERVISOR_PID %s "$(cat "$pidfile")"
 }
 
 # Waits for the specified process.
@@ -183,22 +187,12 @@ wait_for_process() {
   local -r -i max_time_wait="${2:-30}"
   local waited_sec=0
   while ! pgrep "$process_name" >/dev/null; do
-    logr info "waiting $((max_time_wait - waited_sec))s for process ${process_name}"
+    logr running "waiting $((max_time_wait - waited_sec))s for process ${process_name}" >&2
     sleep 1
     waited_sec=$((waited_sec + 1))
     [ "$waited_sec" -lt "$max_time_wait" ] || logr fail "$process_name did not start in time"
   done
-  logr info "$process_name is running"
-}
-
-# Keeps the container alive by waiting for supervisord to finish.
-# Arguments:
-#  None
-run_as_service() {
-  local -r -i pid="$(cat /var/run/supervisord.pid)"
-  while [ -e "/proc/$pid" ]; do
-    sleep 1
-  done
+  logr success "$process_name is running" >&2
 }
 
 # Entrypoint for this container that updates system settings
@@ -207,35 +201,35 @@ run_as_service() {
 #   * - Runs the passed arguments as a command line with dropped permissions.
 #       If no arguments were passed runs as a service.
 main() {
-  local -r uid=${PUID:-1000} gid=${PGID:-1000} user=runner group=runner timezone=${TZ:-UTC}
+  local -r app_user='' app_group=''
   local -a -r processes=("sshd")
 
-  logr task "updating ID of group $group to $gid" -- update_group_id "$group" "$gid"
-  logr task "updating ID of user $user to $uid" -- update_user_id "$user" "$uid"
-  logr task "updating timezone to $timezone" -- update_timezone "$timezone"
+  [ ! "${TZ-}" ] || logr task "updating timezone to $TZ" -- update_timezone "$TZ" >&2
+  [ ! "${PGID-}" ] || logr task "updating ID of group $app_group to $PGID" -- update_group_id "$app_group" "$PGID" >&2
+  [ ! "${PUID-}" ] || logr task "updating ID of user $app_user to $PUID" -- update_user_id "$app_user" "$PUID" >&2
+  [ ! "${AUTHORIZED_KEYS-}" ] || \
+    logr task "switching to SSH public key authentication" -- use_ssh_public_key_authentication "$app_user" "$AUTHORIZED_KEYS" >&2
+  [ "${AUTHORIZED_KEYS-}" ] || [ ! "${PASSWORD-}" ] || \
+    logr task "switching to SSH password authentication" -- use_ssh_password_authentication "$app_user" "$PASSWORD" >&2
+  # bashsupport disable=BP2001,BP5006
+  [ ! "${PASSWORD-}" ] || unset PASSWORD
 
-  if [ "${AUTHORIZED_KEYS-}" ]; then
-    logr task "switching to SSH public key authentication" -- use_ssh_public_key_authentication "$user" "$AUTHORIZED_KEYS"
-  elif [ "${PASSWORD-}" ]; then
-    logr task "switching to SSH password authentication" -- use_ssh_password_authentication "$user" "$PASSWORD"
-    # bashsupport disable=BP2001,BP5006
-    unset PASSWORD && export -n PASSWORD
-  fi
-  logr task "disabling password authentication for user root" -- set_sshd_config 'PermitRootLogin=prohibit-password'
-
-  logr task "fixing permissions of stdout and stderr" -- fix_std_permissions
-  logr task "fixing permissions of home directory for $user" -- fix_home_permissions "$user"
-  logr task "fixing permissions of .ssh directory for $user" -- fix_ssh_permissions "$user" "$group"
+  logr task "disabling password authentication for user root" -- set_sshd_config 'PermitRootLogin=prohibit-password' >&2
+  logr task "fixing permissions of stdout and stderr" -- fix_std_permissions >&2
+  logr task "fixing permissions of home directory for $app_user" -- fix_home_permissions "$app_user" >&2
+  logr task "fixing permissions of .ssh directory for $app_user" -- fix_ssh_permissions "$app_user" "$app_group" >&2
 
   if [ "${#@}" -gt 0 ]; then
-    logr info "changing to $user:$group"
-    util cursor show
-    yasu "$user:$group" entrypoint_user.sh "$@"
+    logr info "changing to $app_user:$app_group" >&2
+    util cursor show >&2
+    yasu "$app_user:$app_group" entrypoint_user.sh "$@"
   else
-    #    logr task "starting processes: ${processes[*]}" -- start_processes "${processes[@]}"
+    logr info "starting services" >&2
     start_processes "${processes[@]}"
-    logr info "running as service"
-    run_as_service
+    logr success "services started" >&2
+    while [ -e "/proc/$SUPERVISOR_PID" ]; do
+      sleep 1
+    done
   fi
 }
 
