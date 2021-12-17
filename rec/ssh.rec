@@ -10,8 +10,8 @@ container_latest() {
 
 # Returns the IP address of the specified container.
 container_ip() {
-  docker inspect "${1?container ID missing}" >inspect.json \
-    && curl -LfsS https://git.io/init.rc | "$SHELL" -s -- jq --join-output '.[].NetworkSettings.Networks.bridge.IPAddress' inspect.json
+  docker inspect "${1?container ID missing}" >inspect.json
+  curl -LfsS https://git.io/init.rc | "$SHELL" -s -- jq --join-output '.[].NetworkSettings.Networks.bridge.IPAddress' inspect.json
 }
 
 # Executes the specified command with the specified timeout.
@@ -20,9 +20,9 @@ container_ip() {
 #   2 - command
 # Returns 1 if timed out 0 otherwise
 timeout() {
-    time=$1
-    command="/bin/bash -c \"$2\""
-    expect -c "set echo \"-no""echo\"; set timeout $time; spawn -no""echo $command; expect timeout { exit 1 } eof { exit 0 }"
+  time=$1
+  command="/bin/bash -c \"$2\""
+  expect -c "set echo \"-no""echo\"; set timeout $time; spawn -no""echo $command; expect timeout { exit 1 } eof { exit 0 }"
 }
 
 # Tests if the specified host is running SSH on the specified port.
@@ -83,7 +83,7 @@ SCRIPT
 
 rec ssh-keygen -b 2048 -t rsa -f test_key -q -N ""
 rec <<'REC'
-docker run --rm -e AUTHORIZED_KEYS="$(cat test_key.pub)" -v "$(pwd):$(pwd)" -w "$(pwd)" -p 2022:2022 bkahlert/build-runner:edge
+docker run --rm -e PUID="$(id -u)" -e PGID="$(id -g)" -e AUTHORIZED_KEYS="$(cat test_key.pub)" -v "$(pwd):$(pwd)" -w "$(pwd)" -p 2022:2022 bkahlert/build-runner:edge
 REC
 
 wait
