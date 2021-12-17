@@ -10,8 +10,12 @@ container_latest() {
 
 # Returns the IP address of the specified container.
 container_ip() {
-  docker inspect "${1?container ID missing}" >inspect.json \
-    && curl -LfsS https://git.io/init.rc | "$SHELL" -s -- jq --join-output '.[].NetworkSettings.Networks.bridge.IPAddress' inspect.json
+set -x
+    id
+  docker inspect "${1?container ID missing}" >inspect.json
+  ls -lisa
+  chmod a+r inspect.json
+  curl -LfsS https://git.io/init.rc | "$SHELL" -s -- jq --join-output '.[].NetworkSettings.Networks.bridge.IPAddress' inspect.json
 }
 
 # Executes the specified command with the specified timeout.
