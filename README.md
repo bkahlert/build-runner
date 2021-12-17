@@ -5,6 +5,8 @@
 **bkahlert/build-runner** is a multiplatform Alpine based SSH accessible Docker image with Docker CLI and OpenJDK 11 installed. It is compatible with IntelliJ
 IDEA [run targets feature](https://www.jetbrains.com/help/idea/run-targets.html#target-types).
 
+[![recorded terminal session demonstrating a successful SSH connection to a running instance of bkahlert/build-runner](docs/ssh.svg "SSH connection to a running instance of bkahlert/build-runner")  
+*SSH connection to a running instance of bkahlert/build-runner*](../../raw/master/docs/ssh.svg)
 
 ## Build locally
 
@@ -47,16 +49,51 @@ docker run --rm -it \
 
 Starting the container without any arguments will launch an SSH server that will listen for connections.
 
+By default, authentication uses public key. Since no public key is provided in the `bkahlert/build-runner`,
+a public key must be provided at startup:
+
 ```shell
-docker run --rm \
+# start container
+docker run -d --rm \
+  -e AUTHORIZED_KEYS="$(cat ~/.ssh/id_rsa.pub)" \
   -v "$(pwd):$(pwd)" \
   -w "$(pwd)" \
   -p 2022:2022 \
-  bkahlert/build-runner:edge
+  "build-runner:edge"
 
 # connect
-ssh -p 2022 runner@localhost
+ssh \
+  -i ~/.ssh/id_rsa \
+  -o StrictHostKeyChecking=no \
+  -o UserKnownHostsFile=/dev/null \
+  -o LogLevel=ERROR \
+  -p 2022 \
+  "runner@localhost" \
+  id
 ```
+
+Alternatively a password can be provided which enables password and disables public key authentication:
+
+```shell
+# start container
+docker run -d --rm \
+  -e PASSWORD=pass1234 \
+  -v "$(pwd):$(pwd)" \
+  -w "$(pwd)" \
+  -p 2022:2022 \
+  "build-runner:edge"
+
+# connect
+sshpass -p "pass1234" ssh \
+  -o StrictHostKeyChecking=no \
+  -o UserKnownHostsFile=/dev/null \
+  -o LogLevel=ERROR \
+  -p 2022 \
+  "runner@localhost" \
+  id
+```
+
+See [configuration](#configuration) to set the public key or password during build time. 
 
 ## Configuration
 
@@ -79,17 +116,16 @@ configuration on each container start.
 
 ```shell
 # Build single image with build argument AUTHORIZED_KEYS
-docker buildx bake --build-arg AUTHORIZED_KEYS="$(cat ~/.ssh/id_rsa.pub)"
+docker buildx bake --set "*.args.AUTHORIZED_KEYS=$(cat ~/.ssh/id_rsa.pub)"
 
 # Build multi-platform image with build argument AUTHORIZED_KEYS
-docker buildx bake image-all --build-arg AUTHORIZED_KEYS="$(cat ~/.ssh/id_rsa.pub)"
+docker buildx bake image-all --set "*.args.AUTHORIZED_KEYS=$(cat ~/.ssh/id_rsa.pub)"
 
 # Start container with environment variable AUTHORIZED_KEYS
 docker run --rm \
   -e AUTHORIZED_KEYS="$(cat ~/.ssh/id_rsa.pub)" \
   -v "$(pwd):$(pwd)" \
   -w "$(pwd)" \
-  -p 2022:2022 \
   -p 2022:2022 \
   build-runner:local
 ```
