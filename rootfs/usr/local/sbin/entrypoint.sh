@@ -154,7 +154,6 @@ fix_ssh_permissions() {
 }
 
 # Starts supervisord and waits for the given processes to start.
-# The actual service configuration is located at /etc/supervisor/supervisord.conf.
 # Globals:
 #   SUPERVISOR_PID - will be set to the PID of the running supervisord
 # Arguments:
@@ -163,9 +162,28 @@ fix_ssh_permissions() {
 #   1 - PID of the supervisord process
 start_processes() {
   local pidfile=/var/run/supervisord.pid
+  local conf=/etc/supervisor/supervisord.conf
+  local log_level
+  case ${DEBUG:-0} in
+    0)
+      log_level=VERBOSE
+      ;;
+    1)
+      log_level=DEBUG1
+      ;;
+    2)
+      log_level=DEBUG2
+      ;;
+    *)
+      log_level=DEBUG3
+      ;;
+  esac
+
+  sed -Ei -e 's/LogLevel=[A-Za-z0-9]*/LogLevel='"$log_level"'/g' "$conf"
+
   /usr/bin/supervisord \
     --pidfile="$pidfile" \
-    --configuration "/etc/supervisor/supervisord.conf" &
+    --configuration "$conf" &
 
   for process in "$@"; do
     wait_for_process "$process"

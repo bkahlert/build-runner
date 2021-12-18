@@ -8,7 +8,8 @@
 
 ### Changed
 
-*none*
+- `DEBUG` can be set to `2` and `3` for the corresponding log levels   
+- `sshd` now logs to the console instead of a log file
 
 ### Deprecated
 

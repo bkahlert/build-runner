@@ -148,12 +148,14 @@ framework [Bats](https://github.com/bats-core/bats-core).
 
 ## Troubleshooting
 
+- Set the environment variable `DEBUG` to `1`.
 - To avoid permission problems with generated files, you can use your local user/group ID (see `PUID`/`PGID`).
 - If you need access to Docker, its command line interface is already installed.  
   You can control your host instance by mounting `/var/run/docker.sock`.
 
 ```shell
 docker run -it --rm \
+  -e DEBUG=1 \
   -e PUID="$(id -u)" \
   -e PGID="$(id -g)" \
   -v /var/run/docker.sock:/var/run/docker.sock \

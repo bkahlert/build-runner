@@ -68,7 +68,7 @@
     -o LogLevel=ERROR \
     -p 2022 \
     "runner@$(container_ip "$container")" \
-    id
+    printenv
   assert_line --partial "USER=runner"
 }
 
@@ -90,4 +90,42 @@
     "runner@$(container_ip "$container")" \
     id
   assert_line --partial "Permission denied"
+}
+
+
+@test "should log no debug with no DEBUG" {
+  local output container
+  image --env AUTHORIZED_KEYS="" --env PASSWORD="password1234" -d "$BUILD_TAG"
+  container=$output
+  assert_within 10s -- assert_container_log "$container" --partial "Server listening on :: port 2022"
+
+  run sshpass -p "password1234" ssh \
+    -o StrictHostKeyChecking=no \
+    -o UserKnownHostsFile=/dev/null \
+    -o LogLevel=ERROR \
+    -p 2022 \
+    "runner@$(container_ip "$container")" \
+    id
+
+  refute_container_log "$container" --partial "debug1"
+  refute_container_log "$container" --partial "debug2"
+  refute_container_log "$container" --partial "debug3"
+}
+@test "should log up to debug2 with DEBUG=2" {
+  local output container
+  image --env DEBUG=2 --env AUTHORIZED_KEYS="" --env PASSWORD="password1234" -d "$BUILD_TAG"
+  container=$output
+  assert_within 10s -- assert_container_log "$container" --partial "Server listening on :: port 2022"
+
+  run sshpass -p "password1234" ssh \
+    -o StrictHostKeyChecking=no \
+    -o UserKnownHostsFile=/dev/null \
+    -o LogLevel=ERROR \
+    -p 2022 \
+    "runner@$(container_ip "$container")" \
+    id
+
+  assert_container_log "$container" --partial "debug1"
+  assert_container_log "$container" --partial "debug2"
+  refute_container_log "$container" --partial "debug3"
 }

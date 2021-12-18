@@ -57,3 +57,15 @@ image() {
 teardown() {
   docker rm --force "${BATS_TEST_NAME?must be only called from within a running test}" >/dev/null 2>&1 || true
 }
+
+
+# TODO update bats-wrapper
+# Tests if at least no log line matches the provided arguments.
+# Arguments:
+#   1 - Docker container ID
+#   * - refute_line arguments
+refute_container_log() {
+  local container=${1:?container missing} && shift
+  run docker logs "$container"
+  refute_line "$@"
+}
