@@ -29,7 +29,7 @@
   local output container
   copy_fixture test_id_rsa.pub test_id_rsa.pub
   copy_fixture test_id_rsa test_id_rsa && chmod 0600 test_id_rsa
-  image --env DEBUG=1 --env AUTHORIZED_KEYS="$(cat test_id_rsa.pub)" -d "$BUILD_TAG"
+  image --env DEBUG=1 --env AUTHORIZED_KEYS="$(<test_id_rsa.pub)" -d "$BUILD_TAG"
   container=$output
   assert_within 10s -- assert_container_log "$container" --partial "sshd is running"
 

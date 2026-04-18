@@ -83,7 +83,7 @@ SCRIPT
 
 rec ssh-keygen -b 2048 -t rsa -f test_key -q -N ""
 rec <<'REC'
-docker run --rm -e PUID="$(id -u)" -e PGID="$(id -g)" -e AUTHORIZED_KEYS="$(cat test_key.pub)" -v "$(pwd):$(pwd)" -w "$(pwd)" -p 2022:2022 bkahlert/build-runner:edge
+docker run --rm -e PUID="$(id -u)" -e PGID="$(id -g)" -e AUTHORIZED_KEYS="$(<test_key.pub)" -v "$(pwd):$(pwd)" -w "$(pwd)" -p 2022:2022 bkahlert/build-runner:edge
 REC
 
 wait

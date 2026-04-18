@@ -191,7 +191,7 @@ start_processes() {
 
   # shellcheck disable=SC2034
   # bashsupport disable=BP2001,BP5006
-  printf -v SUPERVISOR_PID %s "$(cat "$pidfile")"
+  printf -v SUPERVISOR_PID %s "$(<"$pidfile")"
 }
 
 # Waits for the specified process.

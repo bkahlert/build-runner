@@ -23,11 +23,13 @@ RUN apk --no-cache --update add \
     dumb-init \
     docker-cli \
     git \
+    gradle \
     ncurses \
     openjdk11 \
     rsync \
     shadow \
     sshpass \
+    sudo \
     supervisor
 
 # app setup
@@ -49,7 +51,15 @@ ENV DEBUG="$DEBUG" \
     PGID="$PGID" \
     AUTHORIZED_KEYS="$AUTHORIZED_KEYS" \
     PASSWORD="$PASSWORD" \
-    JAVA_HOME="/usr/lib/jvm/default-jvm/j"re
+    JAVA_HOME="/usr/lib/jvm/default-jvm/jre" \
+    GRADLE_HOME="/usr/share/java/gradle"
+#     \
+#    MAVEN_HOME="/usr/share/java/maven-3" \
+#    MAVEN_CONFIG="/home/$APP_USER/.m2" \
+#    GRADLE_HOME="/usr/share/java/gradle"
+
+# && echo "export MAVEN_HOME=$MAVEN_HOME" >> "/home/$APP_USER/.bashrc" \
+# && echo "export MAVEN_CONFIG=$MAVEN_CONFIG" >> "/home/$APP_USER/.bashrc" \
 
 # user setup
 RUN groupadd \
@@ -65,17 +75,19 @@ RUN groupadd \
  && rm /etc/motd \
  && mkdir -p "/home/$APP_USER" \
  && echo "export JAVA_HOME=$JAVA_HOME" >> "/home/$APP_USER/.bashrc" \
+ && echo "export GRADLE_HOME=$GRADLE_HOME" >> "/home/$APP_USER/.bashrc" \
  && echo "[ -f ~/.bashrc ] && . ~/.bashrc" >> "/home/$APP_USER/.bash_profile" \
  && chmod -R 0711 "/home/$APP_USER" \
  && chown -R "$APP_USER:$APP_GROUP" "/home/$APP_USER" \
  && apk update \
  && apk upgrade \
- && apk --no-cache --update add openssh-server \
+ && apk --no-cache --update add openssh \
  && ssh-keygen -A \
  && sed -Ei -e 's/#?[[:space:]]*Port .*$/Port '"$SSH_PORT"'/g' \
             -e 's/#?[[:space:]]*ChallengeResponseAuthentication .*$/ChallengeResponseAuthentication no/g' \
             -e 's/#?[[:space:]]*PasswordAuthentication .*$/PasswordAuthentication no/g' \
-            /etc/ssh/sshd_config
+            /etc/ssh/sshd_config \
+ && echo "%$APP_GROUP	ALL=(ALL) NOPASSWD: ALL" >>/etc/sudoers
 
 EXPOSE "$SSH_PORT"
 
